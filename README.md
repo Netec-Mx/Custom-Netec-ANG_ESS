@@ -67,7 +67,7 @@ Este curso proporciona una base sólida para aquellos que deseen empezar a traba
 
 ### Capítulo 9
 
-- [Implementado Ruteo](Capitulo09/README.md#implementado-ruteo)
+- [Implementando Ruteo](Capitulo09/README.md#implementando-ruteo)
   - Descripción: Implementar ruteo en Angular mediante métodos de navegación, estrategias, mapeo, configuración, parámetros, redirecciones y comodines.
   - Duración estimada: 49 min
 
@@ -76,6 +76,14 @@ Este curso proporciona una base sólida para aquellos que deseen empezar a traba
 - [Manejo de Módulos](Capitulo10/README.md#manejo-de-módulos)
   - Descripción: Diseñar y manejar módulos en Angular, incluyendo el uso de componentes en otros módulos.
   - Duración estimada: 197 min
+
+## Compatibilidad validada
+
+- Windows 11 y PowerShell como entorno principal.
+- Node.js 22, npm 10, Angular CLI 21 y TypeScript 5.9.
+- Standalone en los capítulos de desarrollo moderno.
+- NgModule conservado deliberadamente en el capítulo 10.
+- Duración acumulada de prácticas: 724 minutos.
 
 ## Flujo de colaboración
 
