@@ -1,5 +1,7 @@
 # Servicios en Angular
 
+![Arquitectura del laboratorio: servicio raíz y componentes de tareas](assets/lab-overview.png)
+
 ## Metadatos
 
 | Campo | Detalle |
@@ -7,12 +9,14 @@
 | **Duración estimada** | 74 minutos |
 | **Complejidad** | Media |
 | **Nivel Bloom** | Aplicar (*Apply*) |
-| **Versión Angular** | 17.x (modo NgModule con `--no-standalone`) |
+| **Versión Angular** | 21.x (standalone) |
 | **Última revisión** | 2024 |
 
 ---
 
 ## Descripción General
+
+> **Arquitectura objetivo:** Angular 21 standalone sobre Windows 11 con PowerShell. Se conservan los diez pasos, el estado compartido, la comparación de scopes y el troubleshooting original.
 
 En este laboratorio construirás una aplicación Angular de gestión de tareas (*To-Do List*) que centraliza toda la lógica de datos en un servicio dedicado llamado `TaskService`. Aprenderás a generar el servicio con Angular CLI, a registrarlo en el inyector raíz mediante `providedIn: 'root'` y a consumirlo desde dos componentes independientes (`TaskListComponent` y `TaskFormComponent`), demostrando que el estado compartido fluye a través del servicio sin necesidad de comunicación directa entre componentes. Al finalizar, inspeccionarás el servicio en tiempo de ejecución utilizando Angular DevTools.
 
@@ -37,18 +41,18 @@ Al completar este laboratorio, serás capaz de:
 | Área | Nivel requerido |
 |---|---|
 | Componentes Angular y ciclo de vida (`ngOnInit`) | Básico |
-| Decoradores TypeScript (`@Component`, `@NgModule`) | Básico |
+| Decoradores TypeScript (`@Component`, `@Injectable`) | Básico |
 | Angular CLI (`ng new`, `ng generate component`) | Básico |
 | Clases e interfaces en TypeScript | Básico |
-| Módulos Angular y `AppModule` | Básico |
+| Componentes standalone e imports locales | Básico |
 
 ### Acceso y herramientas
 
 | Herramienta | Versión requerida |
 |---|---|
-| Node.js | 20.x LTS (mínimo 18.x LTS) |
-| NPM | 10.x (incluido con Node.js 20.x) |
-| Angular CLI | 17.x |
+| Node.js | 22.12 o superior compatible |
+| NPM | 10.x (incluido con Node.js 22.x) |
+| Angular CLI | 21.x |
 | Visual Studio Code | 1.85.x o superior |
 | Google Chrome | 120.x o superior |
 | Angular DevTools (extensión Chrome) | Última disponible |
@@ -63,7 +67,7 @@ Al completar este laboratorio, serás capaz de:
 Antes de comenzar, abre una terminal y ejecuta los siguientes comandos para confirmar que tu entorno está correctamente configurado:
 
 ```bash
-# Verificar versión de Node.js (debe ser 18.x o superior)
+# Verificar Node.js 22 (22.12 o superior)
 node --version
 
 # Verificar versión de NPM
@@ -76,19 +80,19 @@ ng version
 **Salida esperada (ejemplo):**
 
 ```
-Node.js: v20.11.0
+Node.js: v22.x.x
 npm: 10.2.4
-Angular CLI: 17.x.x
+Angular CLI: 21.x.x
 ```
 
-> **⚠️ Nota para usuarios de macOS/Linux:** Si `ng` no se reconoce como comando, verifica que `~/.npm-global/bin` esté en tu variable `PATH`. Ejecuta `export PATH=$PATH:~/.npm-global/bin` en tu terminal o agrégalo a tu `~/.bashrc` / `~/.zshrc`.
+> **Referencia secundaria para macOS/Linux:** Si `ng` no se reconoce como comando, verifica que `~/.npm-global/bin` esté en tu variable `PATH`. Ejecuta `export PATH=$PATH:~/.npm-global/bin` en tu terminal o agrégalo a tu `~/.bashrc` / `~/.zshrc`.
 
 > **⚠️ Nota para usuarios de Windows:** Usa PowerShell o CMD. Si `ng` no se reconoce, ejecuta `npm install -g @angular/cli` nuevamente y reinicia la terminal.
 
 ### Instalar Angular CLI (si es necesario)
 
 ```bash
-npm install -g @angular/cli@17
+npm install -g @angular/cli@21
 ```
 
 ### Confirmar instalación de Angular DevTools
@@ -110,10 +114,10 @@ npm install -g @angular/cli@17
 
 1. Abre una terminal en el directorio donde deseas crear el proyecto (por ejemplo, `~/proyectos` o `C:\proyectos`).
 
-2. Ejecuta el siguiente comando para crear el proyecto. La bandera `--no-standalone` garantiza que se use la arquitectura tradicional con `NgModule`, y `--routing=false` omite el módulo de rutas para mantener el proyecto simple:
+2. Ejecuta el siguiente comando para crear el proyecto standalone; `--routing=false` mantiene el alcance enfocado en servicios:
 
    ```bash
-   ng new lab08-tareas --no-standalone --routing=false --style=css
+   ng new lab08-tareas --standalone --routing=false --style=css --file-name-style-guide=2016
    ```
 
 3. Cuando Angular CLI pregunte **"Would you like to share pseudonymous usage data..."**, escribe `N` y presiona Enter.
@@ -139,11 +143,11 @@ npm install -g @angular/cli@17
     Successfully initialized git.
 ```
 
-La estructura de carpetas generada debe incluir `src/app/app.module.ts`, confirmando que se usó el modo NgModule.
+La estructura debe incluir `src/app/app.config.ts` y `src/main.ts` con `bootstrapApplication`.
 
 #### Verificación
 
-En VS Code, abre `src/app/app.module.ts` y confirma que contiene el decorador `@NgModule` con los arreglos `declarations`, `imports`, `providers` y `bootstrap`. Si el archivo existe y tiene esa estructura, el proyecto fue creado correctamente.
+En VS Code, abre `src/main.ts` y confirma que usa `bootstrapApplication`; después revisa `src/app/app.config.ts`, donde se alojan providers globales adicionales.
 
 ---
 
@@ -155,7 +159,7 @@ En VS Code, abre `src/app/app.module.ts` y confirma que contiene el decorador `@
 
 1. En la terminal (dentro del directorio `lab08-tareas`), crea el archivo de la interfaz manualmente. Primero crea la carpeta `models`:
 
-   **macOS / Linux:**
+   **Referencia secundaria — macOS/Linux:**
    ```bash
    mkdir -p src/app/models
    ```
@@ -205,7 +209,7 @@ En VS Code, abre el archivo y confirma que TypeScript no muestra errores de sint
 1. En la terminal, ejecuta el siguiente comando para generar el servicio dentro de la carpeta `services`:
 
    ```bash
-   ng generate service services/task
+   ng generate service services/task --type=service
    # Forma abreviada equivalente:
    # ng g s services/task
    ```
@@ -378,35 +382,34 @@ Verifica que TypeScript reconoce correctamente la interfaz `Task` importada. Pas
 1. Genera el componente con Angular CLI:
 
    ```bash
-   ng generate component components/task-list
+   ng generate component components/task-list --type=component
    # Forma abreviada:
    # ng g c components/task-list
    ```
 
-2. Angular CLI crea cuatro archivos y actualiza automáticamente `app.module.ts`. Verifica que `TaskListComponent` fue agregado al arreglo `declarations` en `app.module.ts`:
+2. Angular CLI crea cuatro archivos. En standalone, agrega `CommonModule` a `TaskListComponent` porque su template usa directivas y pipes:
 
-   ```typescript
-   // src/app/app.module.ts — fragmento relevante
-   declarations: [
-     AppComponent,
-     TaskListComponent,   // ← Debe aparecer aquí
-     // ...
-   ],
-   ```
+```typescript
+@Component({
+  imports: [CommonModule]
+})
+```
 
 3. Abre `src/app/components/task-list/task-list.component.ts` y **reemplaza** su contenido con:
 
    ```typescript
    // src/app/components/task-list/task-list.component.ts
 
+   import { CommonModule } from '@angular/common';
    import { Component, OnInit } from '@angular/core';
    import { TaskService } from '../../services/task.service';
    import { Task } from '../../models/task.model';
 
    @Component({
      selector: 'app-task-list',
+     imports: [CommonModule],
      templateUrl: './task-list.component.html',
-     styleUrls: ['./task-list.component.css']
+     styleUrl: './task-list.component.css'
    })
    export class TaskListComponent implements OnInit {
 
@@ -620,7 +623,7 @@ Verifica que TypeScript reconoce correctamente la interfaz `Task` importada. Pas
 
 #### Salida esperada
 
-El componente `TaskListComponent` debe existir en `src/app/components/task-list/` con sus cuatro archivos, y debe estar registrado en `app.module.ts`.
+El componente `TaskListComponent` debe existir en `src/app/components/task-list/` con sus cuatro archivos, y debe declarar sus dependencias en `imports`.
 
 #### Verificación
 
@@ -637,7 +640,7 @@ En VS Code, abre el archivo `.ts` del componente y verifica que no hay errores. 
 1. Genera el componente:
 
    ```bash
-   ng generate component components/task-form
+   ng generate component components/task-form --type=component
    # Forma abreviada:
    # ng g c components/task-form
    ```
@@ -648,12 +651,14 @@ En VS Code, abre el archivo `.ts` del componente y verifica que no hay errores. 
    // src/app/components/task-form/task-form.component.ts
 
    import { Component } from '@angular/core';
+   import { FormsModule } from '@angular/forms';
    import { TaskService } from '../../services/task.service';
 
    @Component({
      selector: 'app-task-form',
+     imports: [FormsModule],
      templateUrl: './task-form.component.html',
-     styleUrls: ['./task-form.component.css']
+     styleUrl: './task-form.component.css'
    })
    export class TaskFormComponent {
 
@@ -831,50 +836,36 @@ En VS Code, abre el archivo `.ts` del componente y verifica que no hay errores. 
 
 #### Salida esperada
 
-El componente `TaskFormComponent` debe existir en `src/app/components/task-form/` y estar registrado automáticamente en `app.module.ts`.
+El componente `TaskFormComponent` debe existir en `src/app/components/task-form/` y contener `imports: [FormsModule]`.
 
 #### Verificación
 
-Confirma en `app.module.ts` que `declarations` ahora incluye `AppComponent`, `TaskListComponent` y `TaskFormComponent`. Si alguno falta, Angular CLI no lo generó correctamente y deberás agregarlo manualmente.
+Confirma que `TaskListComponent` importa `CommonModule`, `TaskFormComponent` importa `FormsModule` y, en el paso siguiente, `AppComponent` importa ambos componentes.
 
 ---
 
-### Paso 6 — Configurar `AppModule` y `AppComponent`
+### Paso 6 — Configurar `AppComponent` standalone
 
-**Objetivo:** Importar el módulo `FormsModule` (necesario para `ngModel`) y componer la aplicación integrando ambos componentes en el template raíz.
+**Objetivo:** Componer la aplicación standalone integrando `TaskFormComponent` y `TaskListComponent` en el componente raíz.
 
 #### Instrucciones
 
-1. Abre `src/app/app.module.ts` y **reemplaza** su contenido con:
+1. Abre `src/app/app.component.ts` y reemplaza su contenido con la composición standalone:
 
    ```typescript
-   // src/app/app.module.ts
-
-   import { NgModule } from '@angular/core';
-   import { BrowserModule } from '@angular/platform-browser';
-   import { FormsModule } from '@angular/forms';   // ← Necesario para [(ngModel)]
-
-   import { AppComponent } from './app.component';
-   import { TaskListComponent } from './components/task-list/task-list.component';
+   import { Component } from '@angular/core';
    import { TaskFormComponent } from './components/task-form/task-form.component';
+   import { TaskListComponent } from './components/task-list/task-list.component';
 
-   @NgModule({
-     declarations: [
-       AppComponent,
-       TaskListComponent,
-       TaskFormComponent
-     ],
-     imports: [
-       BrowserModule,
-       FormsModule    // ← Habilita ngModel y directivas de formularios template-driven
-     ],
-     providers: [
-       // TaskService NO se registra aquí porque usa providedIn: 'root'
-       // Angular lo registra automáticamente en el inyector raíz
-     ],
-     bootstrap: [AppComponent]
+   @Component({
+     selector: 'app-root',
+     imports: [TaskFormComponent, TaskListComponent],
+     templateUrl: './app.component.html',
+     styleUrl: './app.component.css'
    })
-   export class AppModule { }
+   export class AppComponent {
+     title = 'Gestor de Tareas';
+   }
    ```
 
    > **Punto clave de aprendizaje:** Observa que `TaskService` **no aparece** en el arreglo `providers`. Esto es porque al usar `providedIn: 'root'` en el decorador `@Injectable`, Angular lo registra automáticamente. No es necesario (ni recomendado) duplicar el registro aquí.
@@ -889,7 +880,7 @@ Confirma en `app.module.ts` que `declarations` ahora incluye `AppComponent`, `Ta
    @Component({
      selector: 'app-root',
      templateUrl: './app.component.html',
-     styleUrls: ['./app.component.css']
+     styleUrl: './app.component.css'
    })
    export class AppComponent {
      title = 'Gestión de Tareas — Lab 08';
@@ -978,7 +969,7 @@ Confirma en `app.module.ts` que `declarations` ahora incluye `AppComponent`, `Ta
 
 #### Salida esperada
 
-`app.module.ts` debe importar `FormsModule`. `app.component.html` debe contener los selectores `<app-task-form>` y `<app-task-list>`.
+`TaskFormComponent` debe importar `FormsModule`; `app.component.ts` debe importar ambos hijos y `app.component.html` debe contener los selectores `<app-task-form>` y `<app-task-list>`.
 
 #### Verificación
 
@@ -1052,7 +1043,7 @@ Confirma en la consola del navegador que el mensaje `"TaskService: instancia cre
    @Component({
      selector: 'app-task-list',
      templateUrl: './task-list.component.html',
-     styleUrls: ['./task-list.component.css']
+     styleUrl: './task-list.component.css'
    })
    export class TaskListComponent implements OnInit {
 
@@ -1115,7 +1106,7 @@ Agrega 3 tareas consecutivas desde el formulario y verifica que el contador "Tot
 1. Crea un servicio de contador simple para el experimento:
 
    ```bash
-   ng generate service services/counter
+   ng generate service services/counter --type=service
    ```
 
 2. Abre `src/app/services/counter.service.ts` y reemplaza su contenido:
@@ -1160,7 +1151,7 @@ Agrega 3 tareas consecutivas desde el formulario y verifica que el contador "Tot
    @Component({
      selector: 'app-task-list',
      templateUrl: './task-list.component.html',
-     styleUrls: ['./task-list.component.css'],
+     styleUrl: './task-list.component.css',
      providers: [CounterService]   // ← Instancia EXCLUSIVA para este componente
    })
    ```
@@ -1204,7 +1195,7 @@ Confirma que aparecen **dos** mensajes de `CounterService` con IDs diferentes, p
    ```
    AppComponent
    ├── TaskFormComponent
-   └── TaskListComponent
+   └── TaskListComponent (CommonModule)
    ```
 
 5. Haz clic en **TaskFormComponent** en el árbol. En el panel derecho, busca la sección **Injector** o **Dependencies**. Debes ver `TaskService` listado como una dependencia inyectada.
@@ -1280,22 +1271,20 @@ ERROR: Can't bind to 'ngModel' since it isn't a known property of 'input'.
 ```
 La aplicación no carga y el formulario no se muestra.
 
-**Causa:** La directiva `ngModel` pertenece al módulo `FormsModule` de Angular, que no está importado en `AppModule`. Sin esta importación, Angular no reconoce el binding `[(ngModel)]` en los templates.
+**Causa:** `TaskFormComponent` usa `ngModel`, pero no incluyó `FormsModule` en los imports de su decorador standalone.
 
 **Solución:**
-1. Abre `src/app/app.module.ts`.
-2. Verifica que `FormsModule` está importado al inicio del archivo:
+1. Abre `src/app/components/task-form/task-form.component.ts`.
+2. Verifica la importación:
    ```typescript
    import { FormsModule } from '@angular/forms';
    ```
-3. Verifica que `FormsModule` está incluido en el arreglo `imports` del decorador `@NgModule`:
+3. Verifica el decorador standalone:
    ```typescript
-   imports: [
-     BrowserModule,
-     FormsModule   // ← Debe estar aquí
-   ],
+   @Component({
+     imports: [FormsModule]
+   })
    ```
-4. Guarda el archivo. El servidor de desarrollo se recompilará automáticamente.
 
 ---
 
@@ -1348,7 +1337,7 @@ npm cache clean --force
 
 # Eliminar node_modules si no necesitas el proyecto
 # (puedes regenerarlos con 'npm install' cuando lo necesites)
-rm -rf lab08-tareas/node_modules   # macOS/Linux
+# Referencia secundaria — macOS/Linux: rm -rf lab08-tareas/node_modules
 # En Windows PowerShell:
 # Remove-Item -Recurse -Force lab08-tareas\node_modules
 ```
@@ -1377,14 +1366,13 @@ En este laboratorio implementaste una aplicación Angular de gestión de tareas 
 ### Diagrama final de la arquitectura construida
 
 ```
-AppModule
+AppComponent standalone (app-root)
 │
-├── AppComponent (app-root)
-│   ├── TaskFormComponent (app-task-form)
-│   │   └── inyecta → TaskService [instancia única en inyector raíz]
-│   │
-│   └── TaskListComponent (app-task-list)
-│       └── inyecta → TaskService [MISMA instancia]
+├── TaskFormComponent (FormsModule)
+│   └── inyecta → TaskService [instancia única en inyector raíz]
+│
+├── TaskListComponent (CommonModule)
+│   └── inyecta → TaskService [MISMA instancia]
 │
 └── Inyector Raíz
     └── TaskService (Singleton)

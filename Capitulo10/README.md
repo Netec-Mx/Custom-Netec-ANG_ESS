@@ -1,5 +1,7 @@
 # Manejo de Módulos
 
+![Arquitectura modular del laboratorio con Core, Shared y módulos lazy](assets/lab-overview.png)
+
 ## Metadatos
 
 | Campo | Detalle |
@@ -12,6 +14,8 @@
 ---
 
 ## Descripción General
+
+> **Decisión arquitectónica:** este laboratorio conserva NgModule de forma deliberada porque el tema forma parte del temario aprobado y sigue siendo relevante para mantener aplicaciones existentes. En Angular 21, el equipo recomienda standalone para código nuevo; aquí todos los declarables se marcan `standalone: false` para practicar interoperabilidad correctamente.
 
 En este laboratorio construirás una aplicación Angular multi-módulo para la gestión de una tienda en línea, integrando todos los conceptos de arquitectura modular vistos en el curso. Diseñarás el árbol de módulos antes de escribir código, generarás los módulos y componentes con Angular CLI, configurarás el patrón `forRoot()` en `CoreModule`, implementarás un `SharedModule` con recursos reutilizables y habilitarás la carga diferida (*lazy loading*) del `AdminModule`. Al finalizar, verificarás el comportamiento en Chrome DevTools y Angular DevTools, consolidando una arquitectura Angular escalable y alineada con buenas prácticas profesionales.
 
@@ -40,8 +44,8 @@ Al completar este laboratorio, serás capaz de:
 
 ### Acceso y Herramientas
 
-- Node.js 20.x LTS instalado y verificado.
-- Angular CLI 17.x instalado globalmente.
+- Node.js 22.x instalado y verificado.
+- Angular CLI 21.x instalado globalmente.
 - Visual Studio Code 1.85.x con la extensión **Angular Language Service**.
 - Google Chrome 120.x con la extensión **Angular DevTools**.
 - Conexión a Internet activa para instalación de dependencias npm.
@@ -64,9 +68,9 @@ Al completar este laboratorio, serás capaz de:
 
 | Software | Versión mínima | Versión recomendada |
 |---|---|---|
-| Node.js | 18.x LTS | 20.x LTS |
-| npm | 9.x | 10.x |
-| Angular CLI | 16.x | 17.x |
+| Node.js | 22.12 | 22.x compatible |
+| npm | 10.x | 10.x |
+| Angular CLI | 21.x | 21.x |
 | TypeScript | 4.9.x | 5.x |
 | Visual Studio Code | 1.85.x | Última estable |
 | Google Chrome | 120.x | Última estable |
@@ -77,16 +81,16 @@ Antes de comenzar, ejecuta los siguientes comandos en tu terminal para confirmar
 
 ```bash
 node --version
-# Resultado esperado: v20.x.x
+# Resultado esperado: v22.x.x (22.12 o superior)
 
 npm --version
 # Resultado esperado: 10.x.x
 
 ng version
-# Resultado esperado: Angular CLI: 17.x.x
+# Resultado esperado: Angular CLI: 21.x.x
 ```
 
-> **Nota para Windows:** Usa PowerShell o Git Bash. Para macOS/Linux usa la terminal predeterminada (Bash/Zsh).
+> **Plataforma principal:** usa PowerShell en Windows 11. Git Bash y macOS/Linux se consideran referencias secundarias.
 
 ---
 
@@ -154,7 +158,7 @@ Generar el proyecto Angular con la configuración tradicional de NgModule (modo 
 2. Crea el proyecto Angular en modo NgModule tradicional:
 
    ```bash
-   ng new tienda-modular --no-standalone --routing true --style css
+   ng new tienda-modular --no-standalone --routing=true --style=css --file-name-style-guide=2016
    ```
 
    Cuando el CLI pregunte por el esquema de estilos, selecciona **CSS**. El flag `--no-standalone` garantiza que se genere con `AppModule` y la arquitectura NgModule clásica.
@@ -182,7 +186,7 @@ El proyecto `tienda-modular` se crea sin errores. El archivo `src/app/app.module
 
 ```bash
 # Verifica que app.module.ts existe y tiene la estructura correcta
-cat src/app/app.module.ts
+Get-Content src\app\app.module.ts
 ```
 
 La salida debe mostrar un `@NgModule` con `BrowserModule` en `imports` y `AppComponent` en `bootstrap`.
@@ -208,13 +212,13 @@ Crear el `CoreModule` con el patrón `forRoot()` y el guardia de importación ú
 2. Genera `NavbarComponent` dentro de `CoreModule`:
 
    ```bash
-   ng generate component core/navbar --module=core --export
+   ng generate component core/navbar --module=core --export --standalone=false --type=component
    ```
 
 3. Genera `FooterComponent` dentro de `CoreModule`:
 
    ```bash
-   ng generate component core/footer --module=core --export
+   ng generate component core/footer --module=core --export --standalone=false --type=component
    ```
 
 4. Genera el servicio `LoggerService` dentro de `core`:
@@ -328,6 +332,7 @@ Crear el `CoreModule` con el patrón `forRoot()` y el guardia de importación ú
 
    @Component({
      selector: 'app-footer',
+     standalone: false,
      templateUrl: './footer.component.html'
    })
    export class FooterComponent {
@@ -409,7 +414,7 @@ Crear el `SharedModule` con un componente de carga, una directiva de resaltado y
 2. Genera `LoadingSpinnerComponent`:
 
    ```bash
-   ng generate component shared/loading-spinner --module=shared --export
+   ng generate component shared/loading-spinner --module=shared --export --standalone=false --type=component
    ```
 
 3. Genera `HighlightDirective`:
@@ -455,6 +460,7 @@ Crear el `SharedModule` con un componente de carga, una directiva de resaltado y
 
    @Component({
      selector: 'app-loading-spinner',
+     standalone: false,
      templateUrl: './loading-spinner.component.html'
    })
    export class LoadingSpinnerComponent {
@@ -472,7 +478,8 @@ Crear el `SharedModule` con un componente de carga, una directiva de resaltado y
    import { Directive, ElementRef, HostListener, Input } from '@angular/core';
 
    @Directive({
-     selector: '[appHighlight]'
+     selector: '[appHighlight]',
+     standalone: false
    })
    export class HighlightDirective {
      @Input() appHighlight: string = '#fffde7';  // Color de resaltado configurable
@@ -501,7 +508,8 @@ Crear el `SharedModule` con un componente de carga, una directiva de resaltado y
    import { Pipe, PipeTransform } from '@angular/core';
 
    @Pipe({
-     name: 'currencyFormat'
+     name: 'currencyFormat',
+     standalone: false
    })
    export class CurrencyFormatPipe implements PipeTransform {
      transform(valor: number, moneda: string = 'USD', simbolo: string = '$'): string {
@@ -581,9 +589,9 @@ Crear el módulo de características de productos con sus tres componentes y su 
 2. Genera los tres componentes del módulo de productos:
 
    ```bash
-   ng generate component products/product-list --module=products
-   ng generate component products/product-detail --module=products
-   ng generate component products/product-form --module=products
+   ng generate component products/product-list --module=products --standalone=false --type=component
+   ng generate component products/product-detail --module=products --standalone=false --type=component
+   ng generate component products/product-form --module=products --standalone=false --type=component
    ```
 
 **Paso 5.2 — Crear ProductService**
@@ -682,6 +690,7 @@ Crear el módulo de características de productos con sus tres componentes y su 
 
    @Component({
      selector: 'app-product-list',
+     standalone: false,
      templateUrl: './product-list.component.html'
    })
    export class ProductListComponent implements OnInit {
@@ -735,6 +744,7 @@ Crear el módulo de características de productos con sus tres componentes y su 
 
    @Component({
      selector: 'app-product-detail',
+     standalone: false,
      templateUrl: './product-detail.component.html'
    })
    export class ProductDetailComponent implements OnInit {
@@ -842,7 +852,7 @@ Crear el módulo de características de productos con sus tres componentes y su 
 ### Verificación
 
 ```bash
-ng build --configuration development 2>&1 | grep -E "(error|warning|chunk)"
+ng build --configuration development
 ```
 
 No debe haber errores de compilación relacionados con `ProductsModule`.
@@ -868,8 +878,8 @@ Crear el módulo de usuarios con dos componentes, demostrar que no puede acceder
 2. Genera los componentes:
 
    ```bash
-   ng generate component users/user-list --module=users
-   ng generate component users/user-profile --module=users
+   ng generate component users/user-list --module=users --standalone=false --type=component
+   ng generate component users/user-profile --module=users --standalone=false --type=component
    ```
 
 **Paso 6.2 — Implementar UserListComponent**
@@ -909,6 +919,7 @@ Crear el módulo de usuarios con dos componentes, demostrar que no puede acceder
 
    @Component({
      selector: 'app-user-list',
+     standalone: false,
      templateUrl: './user-list.component.html'
    })
    export class UserListComponent implements OnInit {
@@ -953,6 +964,7 @@ Crear el módulo de usuarios con dos componentes, demostrar que no puede acceder
 
    @Component({
      selector: 'app-user-profile',
+     standalone: false,
      templateUrl: './user-profile.component.html'
    })
    export class UserProfileComponent implements OnInit {
@@ -1045,13 +1057,13 @@ Crear el `AdminModule` con carga diferida, configurar la ruta en `AppRoutingModu
 2. Genera el componente del panel de administración:
 
    ```bash
-   ng generate component admin/admin-dashboard --module=admin
+   ng generate component admin/admin-dashboard --module=admin --standalone=false --type=component
    ```
 
 3. Genera el componente de gestión de productos (solo para admin):
 
    ```bash
-   ng generate component admin/product-management --module=admin
+   ng generate component admin/product-management --module=admin --standalone=false --type=component
    ```
 
 **Paso 7.2 — Implementar AdminDashboardComponent**
@@ -1204,7 +1216,7 @@ Crear el `AdminModule` con carga diferida, configurar la ruta en `AppRoutingModu
 ### Verificación
 
 ```bash
-ng build --configuration development 2>&1 | grep "chunk"
+ng build --configuration development
 ```
 
 Deberías ver líneas que mencionan chunks separados para `products`, `users` y `admin`, lo que confirma que el code splitting está funcionando.
@@ -1329,42 +1341,42 @@ ls src/app/admin/admin.module.ts
 **Compilación sin errores:**
 
 ```bash
-ng build 2>&1 | grep -c "error"
-# Resultado esperado: 0
+ng build
+# Resultado esperado: el comando finaliza sin errores
 ```
 
 **Verificar que AdminModule NO está en AppModule:**
 
 ```bash
-grep -n "AdminModule" src/app/app.module.ts
-# Resultado esperado: sin salida (AdminModule no debe aparecer aquí)
+Select-String -Path src\app\app.module.ts -Pattern 'AdminModule'
+# Resultado esperado: sin coincidencias (AdminModule no debe aparecer aquí)
 ```
 
 **Verificar lazy loading en AppRoutingModule:**
 
 ```bash
-grep -n "loadChildren" src/app/app-routing.module.ts
+Select-String -Path src\app\app-routing.module.ts -Pattern 'loadChildren'
 # Resultado esperado: 3 líneas con loadChildren (una por cada módulo lazy)
 ```
 
 **Verificar que SharedModule no tiene providers:**
 
 ```bash
-grep -n "providers" src/app/shared/shared.module.ts
+Select-String -Path src\app\shared\shared.module.ts -Pattern 'providers'
 # Resultado esperado: sin salida (SharedModule no debe tener providers)
 ```
 
 **Verificar que CoreModule usa forRoot():**
 
 ```bash
-grep -n "forRoot" src/app/core/core.module.ts
+Select-String -Path src\app\core\core.module.ts -Pattern 'forRoot'
 # Resultado esperado: al menos 1 línea con el método forRoot
 ```
 
 **Verificar que CoreModule tiene el guardia de importación:**
 
 ```bash
-grep -n "SkipSelf" src/app/core/core.module.ts
+Select-String -Path src\app\core\core.module.ts -Pattern 'SkipSelf'
 # Resultado esperado: al menos 1 línea con @SkipSelf
 ```
 
@@ -1477,7 +1489,7 @@ Al finalizar el laboratorio, realiza los siguientes pasos para mantener tu entor
 
    ```bash
    # Desde la raíz del proyecto tienda-modular
-   rm -rf dist/
+   Remove-Item -Recurse -Force .\dist
    ```
 
 3. **Guarda tu trabajo** en un repositorio Git (recomendado):

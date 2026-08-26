@@ -1,5 +1,7 @@
 # Implementando Ruteo
 
+![Flujo de navegación del catálogo con rutas, parámetros y comodín](assets/lab-overview.png)
+
 ## Metadatos
 
 | Campo            | Detalle                          |
@@ -14,13 +16,15 @@
 
 ## Descripción General
 
-En este laboratorio implementarás un sistema de ruteo completo en una aplicación Angular de catálogo de productos. Partirás de un proyecto con cinco componentes ya creados pero sin navegación, y configurarás el `AppRoutingModule` para conectarlos mediante rutas con parámetros dinámicos, redirecciones, rutas comodín y parámetros de consulta. Al finalizar comprenderás la diferencia práctica entre navegación declarativa (`routerLink`) y navegación programática (`Router.navigate()`), y habrás comparado las estrategias `PathLocationStrategy` y `HashLocationStrategy`.
+> **Arquitectura objetivo:** Angular 21 standalone con `provideRouter`, Windows 11 y PowerShell. Se conservan los ocho pasos, parámetros, query params, ruta comodín y comparación de estrategias de URL.
+
+En este laboratorio implementarás un sistema de ruteo completo en una aplicación Angular de catálogo de productos. Partirás de un proyecto con cinco componentes ya creados pero sin navegación, y configurarás el `app.routes.ts` para conectarlos mediante rutas con parámetros dinámicos, redirecciones, rutas comodín y parámetros de consulta. Al finalizar comprenderás la diferencia práctica entre navegación declarativa (`routerLink`) y navegación programática (`Router.navigate()`), y habrás comparado las estrategias `PathLocationStrategy` y `HashLocationStrategy`.
 
 ---
 
 ## Objetivos de Aprendizaje
 
-- [ ] Configurar `RouterModule.forRoot()` definiendo rutas que mapeen URLs a componentes específicos, incluyendo redirección y ruta comodín (`**`).
+- [ ] Configurar `provideRouter(routes)` con rutas que mapeen URLs a componentes específicos, incluyendo redirección y ruta comodín (`**`).
 - [ ] Implementar navegación declarativa con `routerLink` y `routerLinkActive` en la barra de navegación.
 - [ ] Implementar navegación programática usando `Router.navigate()` y `Router.navigateByUrl()` desde la clase del componente.
 - [ ] Capturar parámetros de ruta (`ActivatedRoute.snapshot.paramMap`) y parámetros de consulta (`queryParams`) dentro de los componentes destino.
@@ -37,8 +41,8 @@ En este laboratorio implementarás un sistema de ruteo completo en una aplicaci�
 - Conocimiento básico de URLs, parámetros de ruta y parámetros de consulta HTTP.
 
 ### Acceso y Herramientas
-- Node.js 20.x LTS instalado y disponible en el PATH.
-- Angular CLI 17.x instalado globalmente (`ng version` debe responder sin errores).
+- Node.js 22.x instalado y disponible en el PATH.
+- Angular CLI 21.x instalado globalmente (`ng version` debe responder sin errores).
 - Visual Studio Code con la extensión **Angular Language Service** activa.
 - Google Chrome con la extensión **Angular DevTools** instalada.
 - Conexión a Internet para instalar dependencias npm (o mirror local configurado por el instructor).
@@ -61,9 +65,9 @@ En este laboratorio implementarás un sistema de ruteo completo en una aplicaci�
 
 | Software                    | Versión mínima   | Versión recomendada |
 |-----------------------------|------------------|---------------------|
-| Node.js                     | 18.x LTS         | 20.x LTS            |
-| npm                         | 9.x              | 10.x                |
-| Angular CLI                 | 16.x             | 17.x                |
+| Node.js                     | 22.12            | 22.x compatible      |
+| npm                         | 10.x             | 10.x                 |
+| Angular CLI                 | 21.x             | 21.x                 |
 | TypeScript                  | 4.9.x            | 5.x                 |
 | Visual Studio Code          | 1.85.x           | Última estable      |
 | Google Chrome               | 120.x            | Última estable      |
@@ -74,35 +78,35 @@ Antes de comenzar, abre una terminal y ejecuta los siguientes comandos para conf
 
 ```bash
 node --version
-# Esperado: v20.x.x
+# Esperado: v22.x.x (22.12 o superior)
 
 npm --version
 # Esperado: 10.x.x
 
 ng version
-# Esperado: Angular CLI: 17.x.x
+# Esperado: Angular CLI: 21.x.x
 ```
 
 ---
 
 ## Pasos del Laboratorio
 
-> **Nota sobre la sintaxis:** Este laboratorio usa la sintaxis tradicional de Angular con `NgModule` y directivas estructurales (`*ngIf`, `*ngFor`), apropiada para cursos introductorios. El proyecto se crea con la bandera `--no-standalone`.
+> **Nota sobre la sintaxis:** El laboratorio conserva directivas estructurales para practicar su lectura, pero usa composición standalone y `provideRouter`, recomendados para código nuevo en Angular 21.
 
 ---
 
 ### Paso 1 — Crear el Proyecto Base y los Componentes
 
-**Objetivo:** Generar el proyecto Angular con NgModule y crear los cinco componentes que se usarán como destinos de navegación.
+**Objetivo:** Generar el proyecto Angular standalone y crear los cinco componentes que se usarán como destinos de navegación.
 
 **Instrucciones:**
 
 1. Abre una terminal en el directorio donde deseas crear el proyecto.
 
-2. Crea el proyecto Angular en modo NgModule (sin standalone):
+2. Crea el proyecto standalone sin generar rutas automáticamente, porque se configurarán en el paso siguiente:
 
 ```bash
-ng new catalogo-productos --no-standalone --routing=false --style=css
+ng new catalogo-productos --standalone --routing=false --style=css --file-name-style-guide=2016
 ```
 
 > Cuando el CLI pregunte si deseas agregar el módulo de ruteo de Angular, responde **No** (`--routing=false`), ya que lo agregaremos manualmente para entender cada paso.
@@ -116,11 +120,11 @@ cd catalogo-productos
 4. Genera los cinco componentes que actuarán como páginas de la aplicación:
 
 ```bash
-ng generate component components/home
-ng generate component components/product-list
-ng generate component components/product-detail
-ng generate component components/about
-ng generate component components/not-found
+ng generate component components/home --type=component
+ng generate component components/product-list --type=component
+ng generate component components/product-detail --type=component
+ng generate component components/about --type=component
+ng generate component components/not-found --type=component
 ```
 
 5. Verifica que los componentes se hayan creado correctamente:
@@ -143,95 +147,51 @@ product-detail/
 product-list/
 ```
 
-**Verificación:** Abre `src/app/app.module.ts` en VS Code y confirma que los cinco componentes aparecen en el arreglo `declarations`.
+**Verificación:** confirma que existen las cinco carpetas y que cada clase generada es un componente standalone. Se referenciarán directamente desde `app.routes.ts`.
 
 ---
 
-### Paso 2 — Crear el AppRoutingModule Manualmente
+### Paso 2 — Crear `app.routes.ts` y registrar `provideRouter`
 
-**Objetivo:** Crear el módulo de ruteo raíz y definir el arreglo de rutas con todas las configuraciones necesarias.
+**Objetivo:** Crear la configuración de rutas standalone y registrarla en los providers de la aplicación.
 
 **Instrucciones:**
 
-1. Crea el archivo `src/app/app-routing.module.ts` manualmente (o con el CLI):
-
-```bash
-ng generate module app-routing --flat --module=app
-```
-
-> La bandera `--flat` coloca el archivo en `src/app/` sin crear un subdirectorio. La bandera `--module=app` lo importa automáticamente en `AppModule`.
-
-2. Reemplaza el contenido de `src/app/app-routing.module.ts` con la siguiente configuración completa:
+1. Crea `src/app/app.routes.ts`:
 
 ```typescript
-// src/app/app-routing.module.ts
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-
-import { HomeComponent }          from './components/home/home.component';
-import { ProductListComponent }   from './components/product-list/product-list.component';
+import { Routes } from '@angular/router';
+import { AboutComponent } from './components/about/about.component';
+import { HomeComponent } from './components/home/home.component';
+import { NotFoundComponent } from './components/not-found/not-found.component';
 import { ProductDetailComponent } from './components/product-detail/product-detail.component';
-import { AboutComponent }         from './components/about/about.component';
-import { NotFoundComponent }      from './components/not-found/not-found.component';
+import { ProductListComponent } from './components/product-list/product-list.component';
 
-const routes: Routes = [
-  // Ruta de redirección: la URL vacía redirige a /home
-  { path: '', redirectTo: '/home', pathMatch: 'full' },
-
-  // Rutas principales
-  { path: 'home',                component: HomeComponent },
-  { path: 'products',            component: ProductListComponent },
-  { path: 'products/:id',        component: ProductDetailComponent },
-  { path: 'about',               component: AboutComponent },
-
-  // Ruta comodín: cualquier URL no reconocida muestra NotFoundComponent
-  { path: '**',                  component: NotFoundComponent }
+export const routes: Routes = [
+  { path: '', redirectTo: 'home', pathMatch: 'full' },
+  { path: 'home', component: HomeComponent },
+  { path: 'products', component: ProductListComponent },
+  { path: 'products/:id', component: ProductDetailComponent },
+  { path: 'about', component: AboutComponent },
+  { path: '**', component: NotFoundComponent }
 ];
-
-@NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
-})
-export class AppRoutingModule { }
 ```
 
-3. Abre `src/app/app.module.ts` y verifica que `AppRoutingModule` esté en el arreglo `imports`. Si el CLI no lo agregó automáticamente, añádelo manualmente:
+2. Abre `src/app/app.config.ts` y registra las rutas:
 
 ```typescript
-// src/app/app.module.ts
-import { NgModule } from '@angular/core';
-import { BrowserModule } from '@angular/platform-browser';
+import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import { provideRouter } from '@angular/router';
+import { routes } from './app.routes';
 
-import { AppRoutingModule }        from './app-routing.module';
-import { AppComponent }            from './app.component';
-import { HomeComponent }           from './components/home/home.component';
-import { ProductListComponent }    from './components/product-list/product-list.component';
-import { ProductDetailComponent }  from './components/product-detail/product-detail.component';
-import { AboutComponent }          from './components/about/about.component';
-import { NotFoundComponent }       from './components/not-found/not-found.component';
-
-@NgModule({
-  declarations: [
-    AppComponent,
-    HomeComponent,
-    ProductListComponent,
-    ProductDetailComponent,
-    AboutComponent,
-    NotFoundComponent
-  ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule   // <-- El módulo de ruteo debe estar aquí
-  ],
-  providers: [],
-  bootstrap: [AppComponent]
-})
-export class AppModule { }
+export const appConfig: ApplicationConfig = {
+  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes)]
+};
 ```
 
-**Salida Esperada:** No hay salida en terminal. VS Code no debe mostrar errores de TypeScript en ninguno de los dos archivos.
+**Salida Esperada:** VS Code no muestra errores de TypeScript.
 
-**Verificación:** Ejecuta `ng build --dry-run` para comprobar que el proyecto compila sin errores antes de continuar.
+**Verificación:** ejecuta `ng build` para comprobar que el proyecto compila antes de continuar.
 
 ---
 
@@ -282,7 +242,22 @@ export class AppModule { }
 </main>
 ```
 
-2. Agrega los estilos básicos en `src/app/app.component.css`:
+2. Abre `src/app/app.component.ts` y declara las dependencias de navegación:
+
+```typescript
+import { Component } from '@angular/core';
+import { RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+
+@Component({
+  selector: 'app-root',
+  imports: [RouterLink, RouterLinkActive, RouterOutlet],
+  templateUrl: './app.component.html',
+  styleUrl: './app.component.css'
+})
+export class AppComponent { }
+```
+
+3. Agrega los estilos básicos en `src/app/app.component.css`:
 
 ```css
 /* src/app/app.component.css */
@@ -335,7 +310,7 @@ export class AppModule { }
 }
 ```
 
-3. Inicia el servidor de desarrollo:
+4. Inicia el servidor de desarrollo:
 
 ```bash
 ng serve --open
@@ -360,8 +335,10 @@ ng serve --open
 
 ```typescript
 // src/app/components/product-list/product-list.component.ts
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { Router } from '@angular/router';
+import { FormsModule } from '@angular/forms';
+import { Router, RouterLink } from '@angular/router';
 
 // Interfaz para tipar los productos
 interface Product {
@@ -373,8 +350,9 @@ interface Product {
 
 @Component({
   selector: 'app-product-list',
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './product-list.component.html',
-  styleUrls: ['./product-list.component.css']
+  styleUrl: './product-list.component.css'
 })
 export class ProductListComponent implements OnInit {
 
@@ -548,22 +526,10 @@ export class ProductListComponent implements OnInit {
 }
 ```
 
-4. Para que `[(ngModel)]` funcione, importa `FormsModule` en `AppModule`:
+4. Verifica que `ProductListComponent` incluya `FormsModule`, `CommonModule` y `RouterLink` en su decorador standalone:
 
 ```typescript
-// src/app/app.module.ts — agrega FormsModule
-import { FormsModule } from '@angular/forms';
-
-@NgModule({
-  // ...
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    FormsModule   // <-- necesario para [(ngModel)]
-  ],
-  // ...
-})
-export class AppModule { }
+imports: [CommonModule, FormsModule, RouterLink]
 ```
 
 **Salida Esperada:** Al navegar a `/products` se muestra una cuadrícula de seis tarjetas de producto. Al escribir en el campo de búsqueda la URL se actualiza con el query param `?search=...`. Al hacer clic en "Ver detalle →" la URL cambia a `/products/1` (o el ID correspondiente).
@@ -582,8 +548,9 @@ export class AppModule { }
 
 ```typescript
 // src/app/components/product-detail/product-detail.component.ts
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
 
 interface Product {
   id: number;
@@ -596,8 +563,9 @@ interface Product {
 
 @Component({
   selector: 'app-product-detail',
+  imports: [CommonModule, RouterLink],
   templateUrl: './product-detail.component.html',
-  styleUrls: ['./product-detail.component.css']
+  styleUrl: './product-detail.component.css'
 })
 export class ProductDetailComponent implements OnInit {
 
@@ -877,7 +845,7 @@ export class ProductDetailComponent implements OnInit {
     <strong>Ruteo en Angular</strong>. Demuestra:
   </p>
   <ul>
-    <li>Configuración de <code>RouterModule.forRoot()</code></li>
+    <li>Configuración standalone con <code>provideRouter(routes)</code></li>
     <li>Navegación declarativa con <code>routerLink</code></li>
     <li>Navegación programática con el servicio <code>Router</code></li>
     <li>Parámetros de ruta con <code>ActivatedRoute</code></li>
@@ -937,6 +905,8 @@ export class ProductDetailComponent implements OnInit {
 }
 ```
 
+> **Imports standalone del paso 6:** los templates de `HomeComponent`, `AboutComponent` y `NotFoundComponent` usan `routerLink`. En cada clase importa `RouterLink` desde `@angular/router` y agrega `imports: [RouterLink]` al decorador `@Component`.
+
 **Salida Esperada:** La página de inicio muestra el hero con gradiente y las tres tarjetas de categoría. La página "Acerca de" muestra la lista de conceptos. Al escribir cualquier URL inválida (por ejemplo `http://localhost:4200/ruta-inexistente`) se muestra el componente 404.
 
 **Verificación:** Navega manualmente a `http://localhost:4200/pagina-que-no-existe` y confirma que aparece el `NotFoundComponent` con el código 404.
@@ -953,80 +923,26 @@ export class ProductDetailComponent implements OnInit {
    - Navega por la aplicación y observa que las URLs tienen la forma `http://localhost:4200/products/3`.
    - Esta es la estrategia `PathLocationStrategy`: URLs limpias sin el símbolo `#`.
 
-2. Ahora cambia a **HashLocationStrategy**. Modifica `src/app/app-routing.module.ts`:
+2. Ahora activa **HashLocationStrategy** mediante la feature oficial `withHashLocation()` en `app.config.ts`:
 
 ```typescript
-// src/app/app-routing.module.ts — con HashLocationStrategy
-import { NgModule } from '@angular/core';
-import { RouterModule, Routes } from '@angular/router';
-import { LocationStrategy, HashLocationStrategy } from '@angular/common';  // <-- Importar
+import { ApplicationConfig } from '@angular/core';
+import { provideRouter, withHashLocation } from '@angular/router';
+import { routes } from './app.routes';
 
-import { HomeComponent }          from './components/home/home.component';
-import { ProductListComponent }   from './components/product-list/product-list.component';
-import { ProductDetailComponent } from './components/product-detail/product-detail.component';
-import { AboutComponent }         from './components/about/about.component';
-import { NotFoundComponent }      from './components/not-found/not-found.component';
-
-const routes: Routes = [
-  { path: '',           redirectTo: '/home', pathMatch: 'full' },
-  { path: 'home',       component: HomeComponent },
-  { path: 'products',   component: ProductListComponent },
-  { path: 'products/:id', component: ProductDetailComponent },
-  { path: 'about',      component: AboutComponent },
-  { path: '**',         component: NotFoundComponent }
-];
-
-@NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule],
-  providers: [
-    // Sobrescribir la estrategia de ubicación a HashLocationStrategy
-    { provide: LocationStrategy, useClass: HashLocationStrategy }
-  ]
-})
-export class AppRoutingModule { }
+export const appConfig: ApplicationConfig = {
+  providers: [provideRouter(routes, withHashLocation())]
+};
 ```
 
-3. Guarda el archivo y observa el navegador (el servidor de desarrollo recarga automáticamente):
-   - Las URLs ahora tienen la forma `http://localhost:4200/#/products/3`.
-   - El símbolo `#` separa la parte del servidor de la parte manejada por Angular.
+3. Guarda y observa URLs como `http://localhost:4200/#/products/3`.
 
-4. Documenta en un comentario de código las diferencias observadas:
+4. Documenta la comparación indicada a continuación. PathLocationStrategy genera URLs limpias y requiere fallback a `index.html` en el servidor; HashLocationStrategy evita esa configuración, pero incluye `#`.
 
-```typescript
-/*
-  COMPARACIÓN DE ESTRATEGIAS DE RUTEO
-  ====================================
-
-  PathLocationStrategy (por defecto):
-  - URL: http://localhost:4200/products/3
-  - Ventaja: URLs limpias y amigables para SEO
-  - Desventaja: Requiere configuración en el servidor web (reescritura de URLs)
-    para que todas las rutas devuelvan index.html en producción.
-
-  HashLocationStrategy:
-  - URL: http://localhost:4200/#/products/3
-  - Ventaja: Funciona sin configuración especial en el servidor, ya que
-    el servidor solo ve la parte antes del # (la raíz /).
-  - Desventaja: URLs menos limpias; el fragmento # no se envía al servidor,
-    lo que limita algunas técnicas de SEO.
-
-  Recomendación: Usar PathLocationStrategy en producción con la configuración
-  correcta del servidor (nginx, Apache o el servidor de tu proveedor de hosting).
-*/
-```
-
-5. Restaura la estrategia original eliminando el provider de `HashLocationStrategy` para continuar el laboratorio con URLs limpias:
+5. Restaura la estrategia original quitando `withHashLocation()`:
 
 ```typescript
-// Elimina el bloque providers: [...] del @NgModule en app-routing.module.ts
-// para volver a PathLocationStrategy (comportamiento por defecto)
-@NgModule({
-  imports: [RouterModule.forRoot(routes)],
-  exports: [RouterModule]
-  // Sin providers: RouterModule usa PathLocationStrategy por defecto
-})
-export class AppRoutingModule { }
+providers: [provideRouter(routes)]
 ```
 
 **Salida Esperada:**
@@ -1048,8 +964,10 @@ export class AppRoutingModule { }
 ```typescript
 // src/app/components/product-list/product-list.component.ts
 // Versión actualizada con lectura de query params
+import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
-import { Router, ActivatedRoute } from '@angular/router';  // <-- Agregar ActivatedRoute
+import { FormsModule } from '@angular/forms';
+import { Router, ActivatedRoute, RouterLink } from '@angular/router';  // <-- Agregar ActivatedRoute
 
 interface Product {
   id: number;
@@ -1060,8 +978,9 @@ interface Product {
 
 @Component({
   selector: 'app-product-list',
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './product-list.component.html',
-  styleUrls: ['./product-list.component.css']
+  styleUrl: './product-list.component.css'
 })
 export class ProductListComponent implements OnInit {
 
@@ -1165,14 +1084,13 @@ Una vez completados todos los pasos, realiza las siguientes verificaciones funci
 - El componente no se renderiza dentro del `<router-outlet>`.
 
 **Causa:**
-El arreglo `routes` en `app-routing.module.ts` está definido incorrectamente, o `AppRoutingModule` no está importado en `AppModule`. También puede ocurrir si hay un error tipográfico en el `path` (por ejemplo, `'product'` en lugar de `'products'`).
+El arreglo `routes` en `app.routes.ts` está definido incorrectamente, o `provideRouter(routes)` no está registrado en `app.config.ts`. También puede ocurrir si hay un error tipográfico en el `path` (por ejemplo, `'product'` en lugar de `'products'`).
 
 **Solución:**
 
-1. Verifica que `AppRoutingModule` esté en el arreglo `imports` de `AppModule`:
+1. Verifica el provider en `app.config.ts`:
 ```typescript
-// app.module.ts
-imports: [BrowserModule, AppRoutingModule, FormsModule]
+providers: [provideRouter(routes)]
 ```
 
 2. Verifica que los paths en `routes` coincidan exactamente con los valores usados en `routerLink`:
@@ -1204,26 +1122,19 @@ const routes: Routes = [
 - El servidor de desarrollo (`ng serve`) muestra un error de compilación.
 
 **Causa:**
-La directiva `ngModel` pertenece a `FormsModule`, que no está importado en `AppModule`. Angular no incluye este módulo por defecto para mantener el bundle lo más pequeño posible.
+La directiva `ngModel` pertenece a `FormsModule`, que no está importado en `ProductListComponent`. Angular no incluye este módulo por defecto para mantener el bundle lo más pequeño posible.
 
 **Solución:**
 
-Importa `FormsModule` en `src/app/app.module.ts`:
+Importa `FormsModule` en `ProductListComponent`:
 
 ```typescript
-// app.module.ts
-import { FormsModule } from '@angular/forms';  // <-- Agregar esta línea
+import { FormsModule } from '@angular/forms';
 
-@NgModule({
-  declarations: [ /* ... */ ],
-  imports: [
-    BrowserModule,
-    AppRoutingModule,
-    FormsModule   // <-- Agregar aquí
-  ],
-  // ...
+@Component({
+  imports: [CommonModule, FormsModule, RouterLink]
 })
-export class AppModule { }
+export class ProductListComponent { }
 ```
 
 Guarda el archivo. El servidor de desarrollo recompilará automáticamente y el error desaparecerá.
@@ -1239,7 +1150,7 @@ Al finalizar el laboratorio, sigue estos pasos para dejar tu entorno en orden:
 2. **Archivar el proyecto** si deseas conservarlo como referencia:
 ```bash
 # Crear un archivo comprimido del proyecto (sin node_modules)
-# En macOS / Linux:
+# Referencia secundaria — macOS/Linux:
 tar -czf catalogo-productos-lab09.tar.gz --exclude=node_modules catalogo-productos/
 
 # En Windows (PowerShell):
@@ -1249,7 +1160,7 @@ Compress-Archive -Path catalogo-productos -DestinationPath catalogo-productos-la
 
 3. **Eliminar `node_modules`** si necesitas liberar espacio en disco (las dependencias pueden reinstalarse con `npm install`):
 ```bash
-# En macOS / Linux:
+# Referencia secundaria — macOS/Linux:
 rm -rf catalogo-productos/node_modules
 
 # En Windows (PowerShell):
@@ -1258,7 +1169,7 @@ Remove-Item -Recurse -Force catalogo-productos\node_modules
 
 4. **Verificar que no hay procesos de Node.js activos** en el puerto 4200:
 ```bash
-# En macOS / Linux:
+# Referencia secundaria — macOS/Linux:
 lsof -ti:4200 | xargs kill -9 2>/dev/null || echo "Puerto 4200 libre"
 
 # En Windows (PowerShell):
@@ -1274,9 +1185,9 @@ En este laboratorio implementaste un sistema de ruteo completo en Angular. Los c
 
 | Concepto | Dónde se aplicó | Archivo clave |
 |----------|----------------|---------------|
-| `RouterModule.forRoot(routes)` | Configuración del módulo raíz | `app-routing.module.ts` |
-| Ruta de redirección (`redirectTo`) | `''` → `/home` | `app-routing.module.ts` |
-| Ruta comodín (`**`) | URLs inválidas → `NotFoundComponent` | `app-routing.module.ts` |
+| `provideRouter(routes)` | Registro del router standalone | `app.config.ts` |
+| Ruta de redirección (`redirectTo`) | `''` → `/home` | `app.routes.ts` |
+| Ruta comodín (`**`) | URLs inválidas → `NotFoundComponent` | `app.routes.ts` |
 | `<router-outlet>` | Punto de inserción del componente activo | `app.component.html` |
 | `routerLink` declarativo | Barra de navegación y breadcrumb | `app.component.html`, `product-detail.component.html` |
 | `routerLinkActive` | Resaltar enlace activo en navbar | `app.component.html` |
@@ -1286,7 +1197,7 @@ En este laboratorio implementaste un sistema de ruteo completo en Angular. Los c
 | `ActivatedRoute.snapshot.paramMap` | Leer parámetro `:id` de la ruta | `product-detail.component.ts` |
 | `ActivatedRoute.snapshot.queryParamMap` | Leer `?search=` de la URL | `product-list.component.ts` |
 | `NavigationExtras.queryParams` | Escribir query params en la URL | `product-list.component.ts` |
-| `PathLocationStrategy` vs `HashLocationStrategy` | Comparación de estrategias | `app-routing.module.ts` |
+| `PathLocationStrategy` vs `HashLocationStrategy` | Comparación de estrategias | `app.routes.ts` |
 
 ### Conceptos para Profundizar
 
