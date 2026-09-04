@@ -1,3 +1,5 @@
+<img src="images/neteclogo (2).png" alt="logo" width="300"/>
+
 # Angular Essentials
 
 Este curso proporciona una base sólida para aquellos que deseen empezar a trabajar con Angular y desarrollar aplicaciones web interactivas y dinámicas.
@@ -84,6 +86,16 @@ Este curso proporciona una base sólida para aquellos que deseen empezar a traba
 - Standalone en los capítulos de desarrollo moderno.
 - NgModule conservado deliberadamente en el capítulo 10.
 - Duración acumulada de prácticas: 724 minutos.
+
+---
+
+## 📬 **Contacto y más información**
+
+Si tienes alguna pregunta o necesitas más detalles, no dudes en [contactarnos](mailto:soporte@netec.com). También puedes encontrar más recursos en nuestra [página](https://netec.com).
+
+---
+
+¡Gracias por visitar nuestra plataforma! No olvides revisar todos los laboratorios y comenzar tu viaje de aprendizaje hoy mismo.
 
 ## Flujo de colaboración
 
